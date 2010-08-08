@@ -31,32 +31,13 @@
 //	OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
 
-@class ARAppStoreApplication;
-@class ARAppStoreApplicationDetailsImporter;
-@class ARAppStoreApplicationReviewsImporter;
-@class ARAppStoreReviewsViewController;
 
-@interface ARAppStoreCountriesViewController : UITableViewController <UIActionSheetDelegate>
-{
-	ARAppStoreApplication *appStoreApplication;
-	UIBarButtonItem *updateButton;
-	UILabel *remainingLabel;
-	UIActivityIndicatorView *remainingSpinner;
-	NSMutableArray *enabledStores;
-	NSMutableArray *displayedStores;
-	ARAppStoreReviewsViewController *appStoreReviewsViewController;
+@interface NSString (PSIconFilenames)
 
-	// Members used when updating reviews.
-	ARAppStoreApplicationDetailsImporter *detailsImporter;
-	ARAppStoreApplicationReviewsImporter *reviewsImporter;
-	NSMutableArray *storeIdsProcessed;
-	NSMutableArray *storeIdsRemaining;
-	NSMutableArray *unavailableStoreNames;
-	NSMutableArray *failedStoreNames;
-}
-
-@property (nonatomic, retain) ARAppStoreApplication *appStoreApplication;
+- (NSArray *)preferredIconFilenames;
+- (NSArray *)preferredIconFilenamesWithSizeModifiers:(NSArray *)sizes;
+- (NSArray *)preferredIconFilenamesWithSizeModifiers:(NSArray *)sizes scaleModifiers:(NSArray *)scales deviceModifiers:(NSArray *)devices;
 
 @end

@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -36,22 +36,27 @@
 #import "ARAppStoreApplicationsViewController.h"
 #import "PSLog.h"
 
-@interface AppReviewsAppDelegate (Private)
+@interface AppReviewsAppDelegate ()
 
-- (NSUserDefaults *)loadUserSettings;
++ (void)loadUserSettings;
 
 @end
 
 
 @implementation AppReviewsAppDelegate
 
-@synthesize window, exiting, settings, operationQueue;
+@synthesize window, exiting, operationQueue;
+
++ (void)initialize
+{
+	PSLogDebug(@"");
+	[self loadUserSettings];
+}
 
 - (id)init
 {
 	if (self = [super init])
 	{
-		self.settings = [self loadUserSettings];
 		self.operationQueue = [[[NSOperationQueue alloc] init] autorelease];
 		networkUsageCount = 0;
 		self.exiting = NO;
@@ -59,7 +64,7 @@
 	return self;
 }
 
-- (void)applicationDidFinishLaunching:(UIApplication *)application
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
 	PSLogDebug(@"-->");
     // Set up the window and content view
@@ -85,15 +90,20 @@
 	else
 	{
 		// Failed to open database.
-		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"AppReviews" message:@"" delegate:self cancelButtonTitle:@"Exit" otherButtonTitles:nil];
+		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"AppReviews" message:@"Failed to open database!" delegate:self cancelButtonTitle:@"Exit" otherButtonTitles:nil];
 		[alert show];
 		[alert release];
 	}
 	PSLogDebug(@"<--");
+	return YES;
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
+	/*
+	 Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+	 Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+	 */
 	PSLogDebug(@"");
 	// Suspend all NSOperations.
 	[self makeOperationQueuesPerformSelector:@selector(suspendAllOperations)];
@@ -102,8 +112,28 @@
 	[appReviewsStore save];
 }
 
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+	/*
+	 Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+	 If your application supports background execution, called instead of applicationWillTerminate: when the user quits.
+	 */
+	PSLogDebug(@"");
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+	/*
+	 Called as part of the transition from the background to the inactive state: here you can undo many of the changes made on entering the background.
+	 */
+	PSLogDebug(@"");
+}
+
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
+	/*
+	 Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+	 */
 	PSLogDebug(@"");
 	// Re-enable background tasks when we become active again.
 	self.exiting = NO;
@@ -113,6 +143,10 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
+	/*
+	 Called when the application is about to terminate.
+	 See also applicationDidEnterBackground:.
+	 */
 	PSLogDebug(@"-->");
 	// Cancel all NSOperations.
 	[self makeOperationQueuesPerformSelector:@selector(cancelAllOperations)];
@@ -139,16 +173,14 @@
 {
     [window release];
 	[navigationController release];
-	[settings release];
 	[operationQueue release];
     [super dealloc];
 }
 
-- (NSUserDefaults *)loadUserSettings
++ (void)loadUserSettings
 {
+	PSLogDebug(@"");
 	// Load user settings based on the contents of the the settings bundle.
-
-	NSUserDefaults *tmpSettings = [NSUserDefaults standardUserDefaults];
 	NSString *bundle = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"Settings.bundle/Root.plist"];
 	NSDictionary *plist = [[NSDictionary dictionaryWithContentsOfFile:bundle] objectForKey:@"PreferenceSpecifiers"];
 	NSMutableDictionary *defaults = [NSMutableDictionary dictionary];
@@ -159,16 +191,13 @@
 		NSString *key = [setting objectForKey:@"Key"];
 		if (key)
 		{
-			id value = ([tmpSettings objectForKey:key] ? [tmpSettings objectForKey:key] : [setting objectForKey:@"DefaultValue"]);
+			id value = ([[NSUserDefaults standardUserDefaults] objectForKey:key] ? [[NSUserDefaults standardUserDefaults] objectForKey:key] : [setting objectForKey:@"DefaultValue"]);
 			[defaults setObject:value forKey:key];
 		}
 	}
 
 	// Persist the newly initialized default settings and reload them.
-	[tmpSettings setPersistentDomain:defaults forName:[[NSBundle mainBundle] bundleIdentifier]];
-	tmpSettings = [NSUserDefaults standardUserDefaults];
-
-	return tmpSettings;
+	[[NSUserDefaults standardUserDefaults] setPersistentDomain:defaults forName:[[NSBundle mainBundle] bundleIdentifier]];
 }
 
 - (void)increaseNetworkUsageCount

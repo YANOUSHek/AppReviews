@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -59,6 +59,7 @@
 @property (nonatomic, retain) NSMutableArray *unavailableStoreNames;
 @property (nonatomic, retain) NSMutableArray *failedStoreNames;
 
+- (void)updateEnabledStores;
 - (void)updateDisplayedStores;
 
 @end
@@ -168,16 +169,7 @@
 {
 	[super viewWillAppear:animated];
 
-	// Build up a list of enabled stores.
-	[enabledStores removeAllObjects];
-	for (ARAppStore *store in [[ARAppReviewsStore sharedInstance] appStores])
-	{
-		if (store.enabled)
-		{
-			[enabledStores addObject:store];
-		}
-	}
-
+	[self updateEnabledStores];
 	[self updateDisplayedStores];
 
 	[self.navigationController setToolbarHidden:NO animated:animated];
@@ -190,6 +182,7 @@
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdated:) name:kARAppStoreUpdateOperationDidStartNotification object:nil];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdated:) name:kARAppStoreUpdateOperationDidFinishNotification object:nil];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdated:) name:kARAppStoreUpdateOperationDidFailNotification object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(userDefaultsChanged:) name:NSUserDefaultsDidChangeNotification object:nil];
 }
 
 - (void)viewWillDisappear:(BOOL)animated
@@ -201,6 +194,7 @@
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidStartNotification object:nil];
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidFinishNotification object:nil];
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidFailNotification object:nil];
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:NSUserDefaultsDidChangeNotification object:nil];
 }
 
 - (void)setAppStoreApplication:(ARAppStoreApplication *)inAppStoreApplication
@@ -221,9 +215,10 @@
 
 	// First cancel all current/pending operations for this app.
 	[appStoreApplication cancelAllOperations];
-
-	// Add operations to the queue for processing.
 	[appStoreApplication suspendAllOperations];
+
+	// Create array of operations.
+	NSMutableArray *ops = [NSMutableArray array];
 	for (ARAppStore *appStore in enabledStores)
 	{
 		// Only add this store if it is enabled for this app.
@@ -235,13 +230,31 @@
 
 			// Make sure that the "home store" for this app has a high priority in the queue.
 			if ([appStore.storeIdentifier isEqualToString:appStoreApplication.defaultStoreIdentifier])
+			{
 				[op setQueuePriority:NSOperationQueuePriorityHigh];
+				[ops insertObject:op atIndex:0];
+			}
 			else
+			{
 				[op setQueuePriority:NSOperationQueuePriorityNormal];
-
-			[appStoreApplication addUpdateOperation:op];
+				[ops addObject:op];
+			}
 			[op release];
 		}
+	}
+
+	// Add operations to the queue for processing.
+	for (int i = 0; i < [ops count]; i++)
+	{
+		ARAppStoreUpdateOperation *op = [ops objectAtIndex:i];
+
+		// Wait for the previous operation to complete.
+		if (i > 0)
+		{
+			[op addDependency:[ops objectAtIndex:(i-1)]];
+		}
+		// Add operation to the operation queue for this app.
+		[appStoreApplication addUpdateOperation:op];
 	}
 
 	// Refresh table.
@@ -282,6 +295,22 @@
 	}
 }
 
+- (void)updateEnabledStores
+{
+	// First refresh enabled stores from settings.
+	[[ARAppReviewsStore sharedInstance] refreshAppStores];
+
+	// Build up a list of enabled stores.
+	[enabledStores removeAllObjects];
+	for (ARAppStore *store in [[ARAppReviewsStore sharedInstance] appStores])
+	{
+		if (store.enabled)
+		{
+			[enabledStores addObject:store];
+		}
+	}
+}
+
 - (void)updateDisplayedStores
 {
 	// Updates the tableview and takes account of the hideEmptyCountries setting.
@@ -311,6 +340,13 @@
 		remainingLabel.hidden = YES;
 		[remainingSpinner stopAnimating];
 	}
+}
+
+- (void)userDefaultsChanged:(NSNotification *)notification
+{
+	PSLogDebug(@"");
+	[self updateEnabledStores];
+	[self updateDisplayedStores];
 }
 
 - (void)visit:(id)sender

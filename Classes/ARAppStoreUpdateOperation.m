@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -74,76 +74,84 @@
 
 - (void)main
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	PSLogDebug(@"isCancelled=%@", ([self isCancelled] ? @"YES" : @"NO"));
-
-	BOOL success = YES;
-
-	// Update state.
-	appDetails.state = ARAppStoreStateProcessing;
-	// Send kARAppStoreUpdateOperationDidStartNotification to main thread.
-	[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidStartNotification object:appDetails] waitUntilDone:YES];
-
-	// Fetch app details.
-	if (![self isCancelled])
+	@try
 	{
-		NSURL *detailsURL = [detailsImporter detailsURL];
-		NSData *data = [self dataFromURL:detailsURL];
-		if (data)
-		{
-			// Downloaded OK, now parse XML data.
-			if (![self isCancelled])
-			{
-				[detailsImporter processDetails:data];
-				if (detailsImporter.importState != DetailsImportStateComplete)
-					success = NO;
-			}
-		}
-		else
-			success = NO;
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		PSLogDebug(@"---> isCancelled=%@", ([self isCancelled] ? @"YES" : @"NO"));
 
-		// Fetch app reviews.
-		if (success && fetchReviews)
+		BOOL success = YES;
+
+		// Update state.
+		appDetails.state = ARAppStoreStateProcessing;
+		// Send kARAppStoreUpdateOperationDidStartNotification to main thread.
+		[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidStartNotification object:appDetails] waitUntilDone:YES];
+
+		// Fetch app details.
+		if (![self isCancelled])
 		{
-			NSURL *reviewsURL = [reviewsImporter reviewsURL];
-			if (![self isCancelled])
+			NSURL *detailsURL = [detailsImporter detailsURL];
+			NSData *data = [self dataFromURL:detailsURL];
+			if (data)
 			{
-				NSData *data = [self dataFromURL:reviewsURL];
-				if (data)
+				// Downloaded OK, now parse XML data.
+				if (![self isCancelled])
 				{
-					// Downloaded OK, now parse XML data.
-					if (![self isCancelled])
+					[detailsImporter processDetails:data];
+					if (detailsImporter.importState != DetailsImportStateComplete)
+						success = NO;
+				}
+			}
+			else
+				success = NO;
+
+			// Fetch app reviews.
+			if (success && fetchReviews)
+			{
+				NSURL *reviewsURL = [reviewsImporter reviewsURL];
+				if (![self isCancelled])
+				{
+					NSData *data = [self dataFromURL:reviewsURL];
+					if (data)
 					{
-						[reviewsImporter processReviews:data];
-						if ((reviewsImporter.importState != ReviewsImportStateComplete) && (reviewsImporter.importState != ReviewsImportStateEmpty))
-							success = NO;
+						// Downloaded OK, now parse XML data.
+						if (![self isCancelled])
+						{
+							[reviewsImporter processReviews:data];
+							if ((reviewsImporter.importState != ReviewsImportStateComplete) && (reviewsImporter.importState != ReviewsImportStateEmpty))
+								success = NO;
+						}
 					}
 				}
 			}
 		}
-	}
 
-	if (![self isCancelled])
-	{
-		if (success)
+		if (![self isCancelled])
 		{
-			// Save if all successful.
-			[self performSelectorOnMainThread:@selector(save:) withObject:self waitUntilDone:YES];
-			appDetails.state = ARAppStoreStateDefault;
-			// Send kARAppStoreUpdateOperationDidFinishNotification to main thread.
-			[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidFinishNotification object:appDetails] waitUntilDone:YES];
+			if (success)
+			{
+				// Save if all successful.
+				[self performSelectorOnMainThread:@selector(save:) withObject:self waitUntilDone:YES];
+				appDetails.state = ARAppStoreStateDefault;
+				// Send kARAppStoreUpdateOperationDidFinishNotification to main thread.
+				[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidFinishNotification object:appDetails] waitUntilDone:YES];
+			}
+			else
+			{
+				appDetails.state = ARAppStoreStateFailed;
+				// Send kARAppStoreUpdateOperationDidFailNotification to main thread.
+				[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidFailNotification object:appDetails] waitUntilDone:YES];
+			}
 		}
 		else
-		{
-			appDetails.state = ARAppStoreStateFailed;
-			// Send kARAppStoreUpdateOperationDidFailNotification to main thread.
-			[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreUpdateOperationDidFailNotification object:appDetails] waitUntilDone:YES];
-		}
-	}
-	else
-		appDetails.state = ARAppStoreStateDefault;
+			appDetails.state = ARAppStoreStateDefault;
 
-	[pool drain];
+		[pool drain];
+	}
+	@catch (NSException * e)
+	{
+		PSLogException(@"%@", e);
+	}
+	PSLogDebug(@"<---");
 }
 
 - (NSData *)dataFromURL:(NSURL *)url
@@ -160,7 +168,7 @@
 
 #ifdef DEBUG
 	NSDictionary *headerFields = [theRequest allHTTPHeaderFields];
-	PSLogDebug([headerFields descriptionWithLocale:nil indent:2]);
+	PSLogDebug(@"%@", [headerFields descriptionWithLocale:nil indent:2]);
 #endif
 
 	AppReviewsAppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
@@ -186,10 +194,8 @@
 	[detailsImporter copyDetailsTo:appDetails];
 	NSUInteger newRatingsCount = appDetails.ratingCountAll;
 	NSUInteger newReviewsCount = appDetails.reviewCountAll;
-	if (newRatingsCount != oldRatingsCount)
-		appDetails.hasNewRatings = YES;
-	if (newReviewsCount != oldReviewsCount)
-		appDetails.hasNewReviews = YES;
+	appDetails.hasNewRatings = (newRatingsCount != oldRatingsCount);
+	appDetails.hasNewReviews = (newReviewsCount != oldReviewsCount);
 	[appDetails save];
 
 	// Save reviews for this app/store.

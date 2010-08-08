@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -130,7 +130,7 @@ typedef enum
 } DetailsXMLState;
 
 
-@interface ARAppStoreApplicationDetailsImporter : NSObject
+@interface ARAppStoreApplicationDetailsImporter : NSObject <NSXMLParserDelegate>
 {
 	NSString *appIdentifier;
 	NSString *storeIdentifier;

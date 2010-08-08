@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -51,7 +51,6 @@
     UIWindow *window;
 	UINavigationController *navigationController;
 	BOOL exiting;
-	NSUserDefaults *settings;
 	NSOperationQueue *operationQueue;
 	NSUInteger networkUsageCount;
 	ARAppReviewsStore *appReviewsStore;
@@ -59,7 +58,6 @@
 
 @property (nonatomic, retain) IBOutlet UIWindow *window;
 @property (assign) BOOL exiting;
-@property (nonatomic, retain) NSUserDefaults *settings;
 @property (nonatomic, retain) NSOperationQueue *operationQueue;
 
 - (void)increaseNetworkUsageCount;

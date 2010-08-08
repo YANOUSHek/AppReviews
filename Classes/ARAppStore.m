@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -54,7 +54,7 @@
 		if (storeIdentifier && [storeIdentifier length] > 0)
 		{
 			// Set the enabled flag from the app preferences.
-			enabled = [[NSUserDefaults standardUserDefaults] boolForKey:storeIdentifier];
+			[self refreshEnabled];
 		}
 	}
 	return self;
@@ -70,6 +70,11 @@
 - (NSComparisonResult)compare:(ARAppStore *)other
 {
 	return [self.name compare:other.name];
+}
+
+- (void)refreshEnabled
+{
+	enabled = [[NSUserDefaults standardUserDefaults] boolForKey:storeIdentifier];
 }
 
 @end

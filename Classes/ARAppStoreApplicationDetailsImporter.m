@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -38,7 +38,11 @@
 #import "AppReviewsAppDelegate.h"
 #import "GTMRegex.h"
 #import "NSString+PSPathAdditions.h"
+#import "NSString+PSIconFilenames.h"
 #import "PSLog.h"
+
+
+#define kARAppIconSize (29)
 
 
 @interface ARAppStoreApplicationDetailsImporter ()
@@ -47,6 +51,7 @@
 - (NSData *)dataFromURL:(NSURL *)url;
 + (CGImageRef)iconMask;
 + (UIImage *)iconOutline;
+- (NSString *)appIconPath;
 
 @end
 
@@ -183,7 +188,7 @@
 		// We successfully found the app icon URL, see if we need to download it.
 
 		// Only download icon if fetchAppIcon is YES _OR_ the icon file is missing from the cache.
-		NSString *appIconPath = [ARAppStoreApplication appIconPathForAppIdentifier:self.appIdentifier];
+		NSString *appIconPath = [self appIconPath];
 		if (self.fetchAppIcon || ![[NSFileManager defaultManager] fileExistsAtPath:appIconPath])
 		{
 			// Download icon.
@@ -1001,25 +1006,35 @@
 	if (iconData)
 	{
 		UIImage *originalIcon = [[UIImage alloc] initWithData:iconData];
-		CGSize size = CGSizeMake(29, 29);
-		CGRect rect = CGRectMake(0, 0, 29, 29);
+		PSLog(@"Original icon size: %@", NSStringFromCGSize(originalIcon.size));
+
+		CGFloat scale = [UIScreen instancesRespondToSelector:@selector(scale)] ? [[UIScreen mainScreen] scale] : 1.0;
+		NSAssert1(lrint(scale)==1 || lrint(scale)==2, @"Unsupported scale factor: %f", scale);
+		CGSize size = CGSizeMake(kARAppIconSize * scale, kARAppIconSize * scale);
+		CGRect rect = CGRectMake(0, 0, kARAppIconSize * scale, kARAppIconSize * scale);
 		UIGraphicsBeginImageContext(size);
 		CGContextClipToMask(UIGraphicsGetCurrentContext(), rect, [[self class] iconMask]);
 		[originalIcon drawInRect:rect];
 		[[[self class] iconOutline] drawInRect:rect];
 		UIImage *result = UIGraphicsGetImageFromCurrentImageContext();
 		UIGraphicsEndImageContext();
-		[originalIcon release];
+		[originalIcon release], originalIcon = nil;
+		PSLog(@"Created icon size: %@", NSStringFromCGSize(result.size));
 
 		// Get a PNG representation of the final image.
 		NSData *png = UIImagePNGRepresentation(result);
 		if (png)
 		{
 			// Save resized image to file.
-			NSString *iconFilePath = [ARAppStoreApplication appIconPathForAppIdentifier:self.appIdentifier];
-			// Write image to file.
-			[png writeToFile:iconFilePath atomically:YES];
-			PSLog(@"App icon saved successfully for %@", self.appName);
+			NSString *iconFilePath = [self appIconPath];
+			if (iconFilePath)
+			{
+				// Write image to file.
+				[png writeToFile:iconFilePath atomically:YES];
+				PSLog(@"App icon saved successfully for %@", self.appName);
+				ARAppStoreApplication *app = [[ARAppReviewsStore sharedInstance] applicationForIdentifier:self.appIdentifier];
+				[app resetAppIcon];
+			}
 		}
 		else
 		{
@@ -1046,7 +1061,7 @@
 
 #ifdef DEBUG
 	NSDictionary *headerFields = [theRequest allHTTPHeaderFields];
-	PSLogDebug([headerFields descriptionWithLocale:nil indent:2]);
+	PSLogDebug(@"%@", [headerFields descriptionWithLocale:nil indent:2]);
 #endif
 
 	AppReviewsAppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];
@@ -1068,8 +1083,10 @@
 	{
 		if (!_iconMask)
 		{
-			NSString *maskImagePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"iconmask.png"];
-			UIImage *maskImage = [UIImage imageWithContentsOfFile:maskImagePath];
+			UIImage *maskImage = [UIImage imageNamed:@"iconmask"];				// iOS 4 requires no extension and handles Retina display support.
+			if (maskImage == nil)
+				maskImage = [UIImage imageNamed:@"iconmask.png"];						// iOS 3 requires extension.
+
 			CGImageRef maskImageRef = [maskImage CGImage];
 			_iconMask = CGImageMaskCreate(CGImageGetWidth(maskImageRef),
 										  CGImageGetHeight(maskImageRef),
@@ -1093,12 +1110,29 @@
 	{
 		if (!_iconOutline)
 		{
-			NSString *outlineImagePath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"iconoutline.png"];
-			_iconOutline = [[UIImage alloc] initWithContentsOfFile:outlineImagePath];
+			_iconOutline = [[UIImage imageNamed:@"iconoutline"] retain];					// iOS 4 requires no extension and handles Retina display support.
+			if (_iconOutline == nil)
+				_iconOutline = [[UIImage imageNamed:@"iconoutline.png"] retain];		// iOS 3 requires extension.
 		}
 	}
 
 	return _iconOutline;
 }
 
+- (NSString *)appIconPath
+{
+	NSMutableArray *scales = [NSMutableArray arrayWithObject:@""];
+	CGFloat scale = [UIScreen instancesRespondToSelector:@selector(scale)] ? [[UIScreen mainScreen] scale] : 1.0;
+	if (lrint(scale) == 2)
+	{
+		[scales insertObject:@"@2x" atIndex:0];
+	}
+
+	NSArray *filenames = [self.appIdentifier preferredIconFilenamesWithSizeModifiers:[NSArray arrayWithObject:@""]
+																	  scaleModifiers:scales
+																	 deviceModifiers:[NSArray arrayWithObject:@""]];
+	return [[ARAppStoreApplication appIconCachePath] stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.png", [filenames objectAtIndex:0]]];
+}
+
 @end
+

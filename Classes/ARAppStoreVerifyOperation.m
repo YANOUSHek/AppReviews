@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -73,49 +73,56 @@
 
 - (void)main
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	PSLogDebug(@"isCancelled=%@", ([self isCancelled] ? @"YES" : @"NO"));
-
-	BOOL success = YES;
-
-	// Send kARAppStoreVerifyOperationDidStartNotification to main thread.
-	[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidStartNotification object:detailsImporter] waitUntilDone:NO];
-
-	// Fetch app details.
-	if (![self isCancelled])
+	@try
 	{
-		NSURL *detailsURL = [detailsImporter detailsURL];
-		NSData *data = [self dataFromURL:detailsURL];
-		if (data)
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+		PSLogDebug(@"isCancelled=%@", ([self isCancelled] ? @"YES" : @"NO"));
+
+		BOOL success = YES;
+
+		// Send kARAppStoreVerifyOperationDidStartNotification to main thread.
+		[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidStartNotification object:detailsImporter] waitUntilDone:NO];
+
+		// Fetch app details.
+		if (![self isCancelled])
 		{
-			// Downloaded OK, now parse XML data.
-			if (![self isCancelled])
+			NSURL *detailsURL = [detailsImporter detailsURL];
+			NSData *data = [self dataFromURL:detailsURL];
+			if (data)
 			{
-				detailsImporter.fetchAppIcon = YES;
-				[detailsImporter processDetails:data];
-				if (detailsImporter.importState != DetailsImportStateComplete)
-					success = NO;
+				// Downloaded OK, now parse XML data.
+				if (![self isCancelled])
+				{
+					detailsImporter.fetchAppIcon = YES;
+					[detailsImporter processDetails:data];
+					if (detailsImporter.importState != DetailsImportStateComplete)
+						success = NO;
+				}
+			}
+			else
+				success = NO;
+		}
+
+		if (![self isCancelled])
+		{
+			if (success)
+			{
+				// Send kARAppStoreVerifyOperationDidFinishNotification to main thread.
+				[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidFinishNotification object:self] waitUntilDone:YES];
+			}
+			else
+			{
+				// Send kARAppStoreVerifyOperationDidFailNotification to main thread.
+				[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidFailNotification object:self] waitUntilDone:YES];
 			}
 		}
-		else
-			success = NO;
-	}
 
-	if (![self isCancelled])
+		[pool drain];
+	}
+	@catch (NSException * e)
 	{
-		if (success)
-		{
-			// Send kARAppStoreVerifyOperationDidFinishNotification to main thread.
-			[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidFinishNotification object:self] waitUntilDone:YES];
-		}
-		else
-		{
-			// Send kARAppStoreVerifyOperationDidFailNotification to main thread.
-			[[NSNotificationCenter defaultCenter] performSelectorOnMainThread:@selector(postNotification:) withObject:[NSNotification notificationWithName:kARAppStoreVerifyOperationDidFailNotification object:self] waitUntilDone:YES];
-		}
+		PSLogException(@"%@", e);
 	}
-
-	[pool drain];
 }
 
 - (NSData *)dataFromURL:(NSURL *)url
@@ -132,7 +139,7 @@
 
 #ifdef DEBUG
 	NSDictionary *headerFields = [theRequest allHTTPHeaderFields];
-	PSLogDebug([headerFields descriptionWithLocale:nil indent:2]);
+	PSLogDebug(@"%@", [headerFields descriptionWithLocale:nil indent:2]);
 #endif
 
 	AppReviewsAppDelegate *appDelegate = [[UIApplication sharedApplication] delegate];

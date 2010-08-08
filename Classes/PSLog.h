@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -38,9 +38,9 @@
 // makes calls to PSLog "compile out" of Release builds
 #ifdef DEBUG
 
-#define PSLogDebug(...)		NSLog(@"[Thread %p] DEBUG: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLog(...)			NSLog(@"[Thread %p] INFO: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLogInfo(...)		NSLog(@"[Thread %p] INFO: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogDebug(...)		NSLog(@"[%@] DEBUG: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLog(...)			NSLog(@"[%@] INFO: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogInfo(...)		NSLog(@"[%@] INFO: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
 
 #else
 
@@ -59,15 +59,16 @@
 
 #undef PSLog
 #undef PSLogInfo
-#define PSLog(...)			NSLog(@"[Thread %p] INFO: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLogInfo(...)		NSLog(@"[Thread %p] INFO: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLog(...)			NSLog(@"[%@] INFO: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogInfo(...)		NSLog(@"[%@] INFO: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
 
 #endif
 
 
 // We always want these enabled.
-#define PSLogWarning(...)				NSLog(@"[Thread %p] WARNING: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLogError(...)					NSLog(@"[Thread %p] ERROR: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLogRelease(...)				NSLog(@"[Thread %p] INFO: %s %@", [NSThread currentThread], __func__, [NSString stringWithFormat:__VA_ARGS__])
-#define PSLogIntervalSince(msg,since)	NSLog(@"[Thread %p] TIMING: %@ took %fs", [NSThread currentThread], (msg), [[NSDate date] timeIntervalSinceDate:(since)])
-#define PSLogElapsedTime(msg,elapsed)	NSLog(@"[Thread %p] TIMING: %@ took %fs", [NSThread currentThread], (msg), (elapsed))
+#define PSLogWarning(...)				NSLog(@"[%@] WARNING: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogError(...)					NSLog(@"[%@] ERROR: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogException(...)				NSLog(@"[%@] EXCEPTION: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogRelease(...)				NSLog(@"[%@] INFO: %s %@", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), __func__, [NSString stringWithFormat:__VA_ARGS__])
+#define PSLogIntervalSince(msg,since)	NSLog(@"[%@] TIMING: %@ took %fs", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), (msg), [[NSDate date] timeIntervalSinceDate:(since)])
+#define PSLogElapsedTime(msg,elapsed)	NSLog(@"[%@] TIMING: %@ took %fs", ([[NSThread currentThread] isMainThread] ? @"Main Thread" : [NSString stringWithFormat:@"Thread %p", [NSThread currentThread]]), (msg), (elapsed))

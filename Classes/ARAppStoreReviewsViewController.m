@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -65,7 +65,9 @@ typedef enum
 @interface ARAppStoreReviewsViewController ()
 
 @property (nonatomic, retain) ARAppStoreDetailsViewController *appStoreDetailsViewController;
+
 - (void)updateViewForState;
+- (void)warnIfSortOrderChanged;
 
 @end
 
@@ -129,6 +131,7 @@ typedef enum
 
 - (void)viewWillAppear:(BOOL)animated
 {
+	PSLogDebug(@"");
 	NSAssert(appStoreDetails, @"appStoreDetails must be set");
 
     [super viewWillAppear:animated];
@@ -162,36 +165,32 @@ typedef enum
 
 - (void)viewDidAppear:(BOOL)animated
 {
+	PSLogDebug(@"");
 	[super viewDidAppear:animated];
 
 	// See if the sortOrder preference has changed since these reviews were downloaded.
-	if ([userReviews count] > 0)
-	{
-		if ([[NSUserDefaults standardUserDefaults] integerForKey:@"sortOrder"] != appStoreDetails.lastSortOrder)
-		{
-			// Sort order preference has changed since reviews were downloaded.
-			UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"AppReviews" message:@"The Sort Order setting has been changed since these reviews were downloaded. Reviews must be updated for the new setting to take effect." delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil];
-			[alert show];
-			[alert release];
-		}
-	}
+	[self warnIfSortOrderChanged];
 
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdateDidStart:) name:kARAppStoreUpdateOperationDidStartNotification object:nil];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdateDidFail:) name:kARAppStoreUpdateOperationDidFailNotification object:nil];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appStoreReviewsUpdateDidFinish:) name:kARAppStoreUpdateOperationDidFinishNotification object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(userDefaultsChanged:) name:NSUserDefaultsDidChangeNotification object:nil];
 }
 
 - (void)viewWillDisappear:(BOOL)animated
 {
+	PSLogDebug(@"");
 	[super viewWillDisappear:animated];
 
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidStartNotification object:nil];
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidFailNotification object:nil];
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:kARAppStoreUpdateOperationDidFinishNotification object:nil];
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:NSUserDefaultsDidChangeNotification object:nil];
 }
 
 - (void)viewDidDisappear:(BOOL)animated
 {
+	PSLogDebug(@"");
 	[super viewDidDisappear:animated];
 
 	// Release cached data while offscreen.
@@ -298,6 +297,29 @@ typedef enum
 	{
 		// Update table to show reviews that were just completed.
 		[self viewWillAppear:YES];
+	}
+}
+
+- (void)userDefaultsChanged:(NSNotification *)notification
+{
+	PSLog(@"Received notification: %@", notification.name);
+
+	// See if the sortOrder preference has changed since these reviews were downloaded.
+	[self warnIfSortOrderChanged];
+}
+
+- (void)warnIfSortOrderChanged
+{
+	// See if the sortOrder preference has changed since these reviews were downloaded.
+	if ([userReviews count] > 0)
+	{
+		if ([[NSUserDefaults standardUserDefaults] integerForKey:@"sortOrder"] != appStoreDetails.lastSortOrder)
+		{
+			// Sort order preference has changed since reviews were downloaded.
+			UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"AppReviews" message:@"The Sort Order setting has been changed since these reviews were downloaded. Reviews must be updated for the new setting to take effect." delegate:self cancelButtonTitle:@"Dismiss" otherButtonTitles:nil];
+			[alert show];
+			[alert release];
+		}
 	}
 }
 

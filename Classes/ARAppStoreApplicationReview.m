@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -134,9 +134,9 @@
 	}
 	else
 	{
-		NSString *message = [NSString stringWithFormat:@"Failed to insert ARAppStoreApplicationReview into the database with message '%@'.", [db lastErrorMessage]];
-		PSLogError(message);
-        NSAssert(0, message);
+		NSString *format = @"Failed to insert ARAppStoreApplicationReview into the database with message '%@'.";
+		PSLogError(format, [db lastErrorMessage]);
+		NSAssert1(0, format, [db lastErrorMessage]);
 	}
 
     // All data for the application is already in memory, but has not been written to the database.
@@ -161,9 +161,9 @@
 			  reviewDate,
 			  [NSNumber numberWithInteger:primaryKey]])
 		{
-			NSString *message = [NSString stringWithFormat:@"Failed to save ARAppStoreApplicationReview with message '%@'.", [database lastErrorMessage]];
-			PSLogError(message);
-			NSAssert(0, message);
+			NSString *format = @"Failed to save ARAppStoreApplicationReview with message '%@'.";
+			PSLogError(format, [database lastErrorMessage]);
+			NSAssert1(0, format, [database lastErrorMessage]);
 		}
 
         // Update the object state with respect to unwritten changes.
@@ -229,9 +229,9 @@
 {
 	if (![database executeUpdate:@"DELETE FROM application_review WHERE id=?", [NSNumber numberWithInteger:primaryKey]])
 	{
-		NSString *message = [NSString stringWithFormat:@"Failed to delete ARAppStoreApplicationReview with message '%@'.", [database lastErrorMessage]];
-		PSLogError(message);
-		NSAssert(0, message);
+		NSString *format = @"Failed to delete ARAppStoreApplicationReview with message '%@'.";
+		PSLogError(format, [database lastErrorMessage]);
+		NSAssert1(0, format, [database lastErrorMessage]);
 	}
 }
 

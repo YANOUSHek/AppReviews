@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -33,6 +33,7 @@
 
 #import "PSAboutViewController.h"
 #import "PSHelpViewController.h"
+#import "NSString+PSIconFilenames.h"
 #import "PSLog.h"
 
 
@@ -219,35 +220,19 @@ typedef enum
 	return [[[NSBundle mainBundle] infoDictionary] objectForKey:key];
 }
 
-/**
- * Constructs a path to the icon file to be displayed in the About view.
- * Looks at the UIPrerenderedIcon setting in Info.plist and if a pre-rendered icon
- * is supplied then that is used. Next we look for an icon file specified by
- * PSAboutIconFile in the Info.plist file before finally defaulting to CFBundleIconFile.
- */
 - (NSString *)pathForIcon
 {
-	NSString *iconFile = nil;
+	NSString *iconFile = [self infoValueForKey:@"PSAboutIconFile"];
 
-	//UIPrerenderedIcon
-	CFBooleanRef prerenderedFlag = (CFBooleanRef) [self infoValueForKey:@"UIPrerenderedIcon"];
-	if ((prerenderedFlag == nil) || (CFBooleanGetValue(prerenderedFlag) == false))
+	NSArray *filenames = [iconFile preferredIconFilenames];
+	for (NSString *filename in filenames)
 	{
-		// App has a plain icon, look for a specific icon for the About view.
-		iconFile = [self infoValueForKey:@"PSAboutIconFile"];
+		NSString *iconFilePath = [[NSBundle mainBundle] pathForResource:filename ofType:@"png"];
+		if (iconFilePath)
+			return iconFilePath;
 	}
 
-	if (iconFile == nil)
-	{
-		// Use default app icon if nothing better found.
-		iconFile = [self infoValueForKey:@"CFBundleIconFile"];
-	}
-
-	NSString *iconExt = [iconFile pathExtension];
-	if (iconExt && [iconExt length] > 0)
-		iconFile = [iconFile substringToIndex:([iconFile length] - ([iconExt length] + 1))];
-
-	return [[NSBundle mainBundle] pathForResource:iconFile ofType:iconExt];
+	return nil;
 }
 
 

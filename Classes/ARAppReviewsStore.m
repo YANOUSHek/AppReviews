@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -501,6 +501,11 @@ SYNTHESIZE_SINGLETON_FOR_CLASS(ARAppReviewsStore);
 	[tmpArray addObject:[[[ARAppStore alloc] initWithName:@"Venezuela" storeIdentifier:@"143502"] autorelease]];
 	[tmpArray addObject:[[[ARAppStore alloc] initWithName:@"Vietnam" storeIdentifier:@"143471"] autorelease]];
 	self.appStores = [tmpArray sortedArrayUsingSelector:@selector(compare:)];
+}
+
+- (void)refreshAppStores
+{
+	[self.appStores makeObjectsPerformSelector:@selector(refreshEnabled)];
 }
 
 - (void)updatePositions

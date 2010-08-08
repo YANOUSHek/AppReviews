@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -102,6 +102,6 @@
 - (void)resumeAllOperations;
 - (void)addUpdateOperation:(ARAppStoreUpdateOperation *)op;
 + (NSString *)appIconCachePath;
-+ (NSString *)appIconPathForAppIdentifier:(NSString *)identifier;
+- (void)resetAppIcon;
 
 @end

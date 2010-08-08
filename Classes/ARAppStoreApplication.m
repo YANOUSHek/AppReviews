@@ -1,5 +1,5 @@
 //
-//	Copyright (c) 2008-2009, AppReviews
+//	Copyright (c) 2008-2010, AppReviews
 //	http://github.com/gambcl/AppReviews
 //	http://www.perculasoft.com/appreviews
 //	All rights reserved.
@@ -37,6 +37,7 @@
 #import "ARAppStore.h"
 #import "ARAppStoreApplicationDetails.h"
 #import "FMDatabase.h"
+#import "NSString+PSIconFilenames.h"
 #import "AppReviewsAppDelegate.h"
 #import "PSLog.h"
 
@@ -145,9 +146,9 @@
 	}
 	else
 	{
-		NSString *message = [NSString stringWithFormat:@"Failed to insert ARAppStoreApplication into the database with message '%@'.", [db lastErrorMessage]];
-		PSLogError(message);
-        NSAssert(0, message);
+		NSString *format = @"Failed to insert ARAppStoreApplication into the database with message '%@'.";
+		PSLogError(format, [db lastErrorMessage]);
+		NSAssert1(0, format, [db lastErrorMessage]);
 	}
 
     // All data for the application is already in memory, but has not been written to the database.
@@ -162,9 +163,9 @@
 	{
 		if (![database executeUpdate:@"UPDATE application SET name=?, company=?, app_identifier=?, default_store_identifier=?, position=? WHERE id=?", name, company, appIdentifier, defaultStoreIdentifier, [NSNumber numberWithInteger:position], [NSNumber numberWithInteger:primaryKey]])
 		{
-			NSString *message = [NSString stringWithFormat:@"Failed to save ARAppStoreApplication with message '%@'.", [database lastErrorMessage]];
-			PSLogError(message);
-			NSAssert(0, message);
+			NSString *format = @"Failed to save ARAppStoreApplication with message '%@'.";
+			PSLogError(format, [database lastErrorMessage]);
+			NSAssert1(0, format, [database lastErrorMessage]);
 		}
 
         // Update the object state with respect to unwritten changes.
@@ -230,9 +231,9 @@
 	else
 	{
 		// Failed to delete app from database.
-		NSString *message = [NSString stringWithFormat:@"Failed to delete ARAppStoreApplication with message '%@'.", [database lastErrorMessage]];
-		PSLogError(message);
-		NSAssert(0, message);
+		NSString *format = @"Failed to delete ARAppStoreApplication with message '%@'.";
+		PSLogError(format, [database lastErrorMessage]);
+		NSAssert1(0, format, [database lastErrorMessage]);
 	}
 }
 
@@ -330,19 +331,25 @@
 	else
 	{
 		// No icon has been loaded yet, try to load it from the cache.
-		NSString *pathInCache = [ARAppStoreApplication appIconPathForAppIdentifier:self.appIdentifier];
-		NSFileManager *fileMgr = [NSFileManager defaultManager];
-		if ([fileMgr fileExistsAtPath:pathInCache])
+		NSArray *filenames = [self.appIdentifier preferredIconFilenamesWithSizeModifiers:[NSArray arrayWithObject:@""]];
+		for (NSString *filename in filenames)
 		{
-			appIcon = [[UIImage imageWithContentsOfFile:pathInCache] retain];
-			if (appIcon)
+			NSString *pathInCache = [[ARAppStoreApplication appIconCachePath] stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.png", filename]];
+			NSFileManager *fileMgr = [NSFileManager defaultManager];
+			if ([fileMgr fileExistsAtPath:pathInCache])
 			{
-				return appIcon;
+				appIcon = [[UIImage imageWithContentsOfFile:pathInCache] retain];
+				PSLog(@"Loaded icon with size: %@, scale: %g", NSStringFromCGSize(appIcon.size), appIcon.scale);
+				if (appIcon)
+					return appIcon;
 			}
 		}
 	}
 
-	return [UIImage imageNamed:@"unknownicon.png"];
+	UIImage *unknownIcon = [UIImage imageNamed:@"unknownicon"];			// iOS 4 requires no extension and handles Retina display support.
+	if (unknownIcon == nil)
+		unknownIcon = [UIImage imageNamed:@"unknownicon.png"];			// iOS 3 requires extension.
+	return unknownIcon;
 }
 
 + (NSString *)appIconCachePath
@@ -369,31 +376,33 @@
 	return _cacheDirectoryPath;
 }
 
-+ (NSString *)appIconPathForAppIdentifier:(NSString *)identifier
+- (void)resetAppIcon
 {
-	NSString *fileName = [NSString stringWithFormat:@"%@.png", identifier];
-	return [[ARAppStoreApplication appIconCachePath] stringByAppendingPathComponent:fileName];
+	// Release our instance of the cached icon (it will be reloaded if needed again).
+	[appIcon release];
+	appIcon = nil;
 }
 
 - (void)removeAppIcon
 {
-	NSString *pathInCache = [ARAppStoreApplication appIconPathForAppIdentifier:self.appIdentifier];
-
-	NSFileManager *fileMgr = [NSFileManager defaultManager];
-	if ([fileMgr fileExistsAtPath:pathInCache])
+	NSArray *filenames = [self.appIdentifier preferredIconFilenamesWithSizeModifiers:[NSArray arrayWithObject:@""]];
+	for (NSString *filename in filenames)
 	{
-		NSError *error = nil;
-		[fileMgr removeItemAtPath:pathInCache error:&error];
-
-		if (error)
+		NSString *pathInCache = [[ARAppStoreApplication appIconCachePath] stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.png", filename]];
+		NSFileManager *fileMgr = [NSFileManager defaultManager];
+		if ([fileMgr fileExistsAtPath:pathInCache])
 		{
-			PSLogError(@"Error removing image from cache %@", error);
+			NSError *error = nil;
+			[fileMgr removeItemAtPath:pathInCache error:&error];
+
+			if (error)
+			{
+				PSLogError(@"Error removing image from cache %@", error);
+			}
 		}
 	}
 
-	// Release our instance of the cached icon (it will be reloaded if needed again).
-	[appIcon release];
-	appIcon = nil;
+	[self resetAppIcon];
 }
 
 
