@@ -136,7 +136,7 @@
 
 - (NSURL *)detailsURL
 {
-	return [NSURL URLWithString:[NSString stringWithFormat:@"http://ax.itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?id=%@&mt=8", appIdentifier]];
+	return [NSURL URLWithString:[NSString stringWithFormat:@"http://ax.itunes.apple.com/WebObjects/MZStore.woa/wa/viewSoftware?id=%@&type=Purple+Software", appIdentifier]];
 }
 
 - (NSString *)localXMLFilename
@@ -153,6 +153,10 @@
 #ifdef DEBUG
 	// Save XML file for debugging.
 	[data writeToFile:[self localXMLFilename] atomically:YES];
+#else
+	// Clean up files written by previous debug builds.
+	NSString *debugFilename = [self localXMLFilename];
+	[[NSFileManager defaultManager] removeItemAtPath:debugFilename error:NULL];
 #endif
 
 	// Initialise some members used whilst parsing XML content.

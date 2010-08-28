@@ -106,6 +106,10 @@
 #ifdef DEBUG
 	// Save XML file for debugging.
 	[data writeToFile:[self localXMLFilename] atomically:YES];
+#else
+	// Clean up files written by previous debug builds.
+	NSString *debugFilename = [self localXMLFilename];
+	[[NSFileManager defaultManager] removeItemAtPath:debugFilename error:NULL];
 #endif
 
 	// Initialise some members used whilst parsing XML content.
