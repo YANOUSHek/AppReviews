@@ -152,6 +152,9 @@
 	// Position rating count label.
 	CGSize itemSize = [ratingCountLabel.text sizeWithFont:ratingCountLabel.font constrainedToSize:CGSizeMake(contentRect.size.width-(2*MARGIN_X),CGFLOAT_MAX) lineBreakMode:UILineBreakModeTailTruncation];
 	frame = CGRectMake(boundsX + MARGIN_X + IMAGE_SIZE + MARGIN_X + realRatingWidth + INNER_MARGIN_X, LOWER_ROW_TOP, contentRect.size.width-(IMAGE_SIZE+realRatingWidth+countBounds.size.width+INNER_MARGIN_X + (4*MARGIN_X)), itemSize.height);
+	if (itemSize.height == 0) {
+	 frame.size.height = 0;
+	}
 	ratingCountLabel.frame = frame;
 
 	// Position count.
